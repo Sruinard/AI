@@ -4,3 +4,6 @@ print(a+b)
 c=9000
 print('hell')
 
+def multiply(x,y):
+    return x*y
+
