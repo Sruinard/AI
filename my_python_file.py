@@ -11,3 +11,5 @@ def multiply(x,y):
     return x*y
 
 c = multiply(a,b)
+multiplied = multiply(c,b)
+
