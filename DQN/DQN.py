@@ -229,27 +229,3 @@ with tf.Session() as sess:
         if np.mean(episode_rewards_buffer) > 195:
             DQN.saver.save(sess, '/Users/stefruinard/Desktop/RL_models/DQN/Save_sess/final_summary', global_step=global_counter)
             break
-        
-
-
-# In[35]:
-
-get_ipython().system("tensorboard --logdir='/Users/stefruinard/Desktop/RL_models/DQN/Save_sess/'")
-
-
-# In[29]:
-
-import matplotlib.pyplot as plt
-plt.plot(np.arange(2338),episode_reward_list, )
-plt.show()
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
