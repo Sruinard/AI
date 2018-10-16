@@ -33,4 +33,4 @@ with tf.Session() as sess:
         feed_dict = {a: a_values, b: b_values, c: c_values}
         summary_run = sess.run(summary_merged, feed_dict=feed_dict)
         writer.add_summary(summary_run, global_step=i)
-    writer.flush()
+        writer.flush()
