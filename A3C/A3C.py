@@ -33,7 +33,10 @@ class ActorCriticNetwork():
                     self.critic_loss = tf.reduce_mean(tf.square(temporal_difference))
 
                 with tf.name_scope('actor_loss'):
-                    self.log_prob = tf.reduce_sum(tf.log(self.action_dist) * tf.one_hot(self.action_placeholder, 2, dtype=tf.float32), axis=1, keep_dims=True) #the '2' is for the number of actions that can be taken in the environment of CartPole
+                    #the loss takes the softmax value (between 0-1) and computes the negative log and multiplies this with de temporal difference
+                    #Consequently, actions with high certainty and accurate score almost add nothing to the loss (-log(~1)*(y^hat - y ~= 0) = 0
+                    #actions with low certainty and better than expected value --> -log(0.1) * (y^hat - y)--> high_value *
+                    self.log_prob = -tf.reduce_sum(tf.log(self.action_dist) * tf.one_hot(self.action_placeholder, 2, dtype=tf.float32), axis=1, keepdims=True) #the '2' is for the number of actions that can be taken in the environment of CartPole
                     self.exp_v = self.log_prob * temporal_difference
 
 
@@ -69,3 +72,5 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     obs = env.reset().reshape(-1,4)
     log_values, exp_values = sess.run([Local_AC.log_prob, Local_AC.exp_v], feed_dict={Local_AC.state_placeholder:obs, Local_AC.action_placeholder:[1], Local_AC.target_state_value:[[10]]})
+
+
