@@ -8,13 +8,12 @@ import itertools
 
 data = pd.read_csv('/Users/stefruinard/Documents/ML6/DataECC/exp3_010.csv')
 
-x_train = data.loc[2000000:2020000, :]
+x_train = data.loc[1000000:2020000, :]
 x_test = data.loc[2020000:2030000, :]
 
 
 class Preprocessing():
-    def __init__(self, X_train, X_test, batch_size, skip_n_frames=1, mean_window=1, lag_period=0, keep_all=False,
-                 use_default=True):
+    def __init__(self, X_train, X_test, batch_size, skip_n_frames=1, mean_window=1, lag_period=0, keep_all=False, use_default=True, remove_col_flag=True, standardize=True):
         self.X_train = X_train
         self.X_test = X_test
         self.skip_n_frames = np.max((1, skip_n_frames))
@@ -24,6 +23,13 @@ class Preprocessing():
         self.default_columns = ['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'encoder_rpm', 'temperature_board']
         self.keep_all = keep_all
         self.use_default = use_default
+        self.remove_col_flag = remove_col_flag
+        self.standardize = standardize
+        if self.remove_col_flag:
+            self.X_train = self._remove_control_columns(self.X_train)
+
+        if self.standardize:
+            self.X_train = self._standardize(self.X_train)
 
     def _remove_control_columns(self, data):
         # USES PANDAS
@@ -107,9 +113,7 @@ class Preprocessing():
         return lagged_data
 
     def _preprocess(self, skip_frames=True, mean_window=True):
-        processed_data = self._remove_control_columns(self.X_train)
-        processed_data = self._standardize(processed_data)
-        x_batch, y_batch = self._select_batch(processed_data)
+        x_batch, y_batch = self._select_batch(self.X_train)
         if skip_frames == True:
             x_batch = self._skip_frames(data=x_batch)
             y_batch = self._skip_frames(data=y_batch)
@@ -119,8 +123,4 @@ class Preprocessing():
         x_batch = self._create_lag(x_batch)
         y_batch = self._create_lag(y_batch)
         return x_batch, y_batch.loc[:, self.default_columns]
-
-
-pipeline = Preprocessing(batch_size=64, mean_window=4, skip_n_frames=12,X_train=x_train, X_test=x_test, lag_period=10)
-x_batch, y_batch = pipeline._preprocess()
 
