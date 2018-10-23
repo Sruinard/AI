@@ -65,9 +65,9 @@ class Preprocessing():
         length_data_set = np.shape(data)[0]
         time_series_suitable_indexes = length_data_set - self.batch_size
         index = np.random.randint(time_series_suitable_indexes)
-        x_batch = data[index:index + self.batch_size - 1]
+        x_batch = data[index:index + self.batch_size]
         # target value is next time step, account for skip_n_frames and mean_window
-        y_batch = data[index + self.skip_n_frames * self.mean_window:index + self.batch_size - 1 + self.skip_n_frames * self.mean_window]
+        y_batch = data[index + self.skip_n_frames * self.mean_window:index + self.batch_size + self.skip_n_frames * self.mean_window]
         return x_batch, y_batch
 
     def _skip_frames(self, data):
