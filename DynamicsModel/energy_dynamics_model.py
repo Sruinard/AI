@@ -8,139 +8,67 @@ import pandas as pd
 from sklearn import preprocessing
 from sklearn import pipeline
 import itertools
+import matplotlib.pyplot as plt
 sys.path.append('/Users/stefruinard/Desktop/AI/DynamicsModel/')
 from pipeline import Preprocessing
+import matplotlib.pyplot as plt
+from deep_networks import Networks
 
 data = pd.read_csv('/Users/stefruinard/Documents/ML6/DataECC/exp3_010.csv')
-
-x_train = data.loc[1000000:2020000, :]
-x_test = data.loc[2020000:2030000, :]
-
+x_train = data.loc[:2400000, :]
+x_test = data.loc[2400000:, :]
 print('------Data and Packages Loaded------')
 
-mean_window = 4
 
-#size of batch
+
+loss_sequences = []
 batch_size=128
 
-pipeline = Preprocessing(batch_size=batch_size, mean_window=mean_window, skip_n_frames=12,X_train=x_train, X_test=x_test, lag_period=10)
-batch_x,batch_y= pipeline._preprocess()
 
-n_time_steps = np.shape(batch_x)[1]/(7+mean_window*3)
-#hidden LSTM units
-num_units=128
-#rows of 28 pixels
-n_input=(7+3*mean_window)
-n_input
-#learning rate for adam
-learning_rate=0.001
-#mnist is meant to be classified in 10 classes(0-9).
-n_classes=7
+skip_n_frames_list = [1,4,8,10,16,20,3,6,9,15,2,4,8,10,16,20,3,6,9,15]
+mean_window_list = [1,3,9,20,2,11,8,4,2,10,2,3,9,20,2,11,8,4,2,10]
+lag_period_list = [20,8,10,2,12,4,3,9,13,2,20,8,10,1,12,4,3,9,13,2]
+lstm_units_list = [128,128,128,64,64,64,12,12,12,24,24,24,50,50,50,100,100,100,200,200]
+type_list = ["LSTM"]*10 + ['dense']*10
+n_units_list = [[500,250,10], [100,100,100], [20,10,10], [50,25,10],[50,50,50], [60,40,20],[100,50,10], [150,100,50], [75,50,25], [30,20,10]]*2
 
-tf.reset_default_graph()
-#import mnist dataset
-from tensorflow.examples.tutorials.mnist import input_data
-mnist=input_data.read_data_sets("/tmp/data/",one_hot=True)
+for i in range(10):
+    # initialize variables
+    mean_window, skip_n_frames, lag_period, type, n_units, lstm_units = skip_n_frames_list[i], mean_window_list[i], lag_period_list[i], type_list[i], n_units_list[i], lstm_units_list[i]
+    tf.reset_default_graph()
+    Preprocess_input = Preprocessing(batch_size=batch_size, mean_window=mean_window, skip_n_frames=skip_n_frames,X_train=x_train, X_test=x_test, lag_period=lag_period)
+    Network = Networks(type=type, n_special_layers=0, n_dense_layers=3, n_units=n_units, lstm_n_units=lstm_units, n_classes=7, Preprocess_input=Preprocess_input, learning_rate=0.001)
+    init = tf.global_variables_initializer()
 
-#define constants
-#unrolled through 28 time steps
+    with tf.Session() as sess:
+        sess.run(init)
+        loss_list = []
+        iter = 1
+        while iter < 200:
+            batch_x, batch_y = Preprocess_input._preprocess()
+            if Network.type =='LSTM':
+                batch_x = np.reshape(np.array(batch_x), newshape=[batch_size, int(Network.n_time_steps), Network.n_input])
 
+            sess.run(Network.opt, feed_dict={Network.x_placeholder: batch_x, Network.y_label: batch_y})
 
-
-
-
-
-#weights and biases of appropriate shape to accomplish above task
-out_weights=tf.Variable(tf.random_normal([num_units,n_classes]))
-out_bias=tf.Variable(tf.random_normal([n_classes]))
-
-#defining placeholders
-#input image placeholder
-x_placeholder=tf.placeholder(tf.float32,[None,n_time_steps, n_input])
-#input label placeholder
-y_label=tf.placeholder(tf.float32,[None,n_classes])
-
-input_reshaped = tf.unstack(x_placeholder, n_time_steps, 1)
-
-#defining the network
-lstm_layer=tf.nn.rnn_cell.LSTMCell(num_units,forget_bias=1)
-outputs,_=rnn.static_rnn(lstm_layer,input_reshaped,dtype=tf.float32)
-
-#converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
-# prediction=tf.matmul(outputs[-1],out_weights)+out_bias
-prediction=tf.layers.dense(outputs[-1], n_classes)
-#loss_function
-loss=tf.losses.mean_squared_error(predictions=prediction, labels=y_label)
-#optimization
-opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+            if iter % 10 == 0:
+                los = sess.run(Network.loss, feed_dict={Network.x_placeholder: batch_x, Network.y_label: batch_y})
+                print("For iter ", iter)
+                print("Loss ", los)
+                print("__________________")
+                loss_list.append(los)
+            if iter ==199:
+                loss_sequences.append((loss_list,mean_window, skip_n_frames, lag_period, type, n_units, lstm_units))
+            iter = iter + 1
 
 
-#initialize variables
-init=tf.global_variables_initializer()
-with tf.Session() as sess:
-    sess.run(init)
-    loss_list = []
-    iter=1
-    while iter<2000:
-        batch_x,batch_y= pipeline._preprocess()
-        batch_x = np.reshape(np.array(batch_x), newshape=[batch_size,int(n_time_steps),n_input])
-
-        sess.run(opt, feed_dict={x_placeholder:batch_x, y_label: batch_y})
-
-        if iter %10==0:
-            los=sess.run(loss,feed_dict={x_placeholder:batch_x, y_label:batch_y})
-            print("For iter ",iter)
-            print("Loss ",los)
-            print("__________________")
-        loss_list.append(los)
-        iter=iter+1
-
-
-import matplotlib.pyplot as plt
 plt.style.use('ggplot')
-x_axis = np.arange(np.shape(loss_list)[0])
-plt.plot(x_axis, loss_list)
-plt.show()
 
 
-
-
-
-tf.reset_default_graph()
-
-
-x_placeholder=tf.placeholder(tf.float32,[None,int(n_time_steps* n_input)])
-#input label placeholder
-y_label=tf.placeholder(tf.float32,[None,n_classes])
-
-
-layer_1 = tf.layers.dense(units=500, inputs=x_placeholder, activation=tf.nn.relu)
-layer_2 = tf.layers.dense(units=250, inputs=layer_1, activation=tf.nn.relu)
-layer_3 = tf.layers.dense(units=50, inputs=layer_2, activation=tf.nn.relu)
-prediction = tf.layers.dense(inputs=layer_3, units=n_classes)
-loss=tf.losses.mean_squared_error(predictions=prediction, labels=y_label)
-opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
-
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    loss_list_2 = []
-    iter = 1
-    while iter < 2000:
-        batch_x, batch_y = pipeline._preprocess()
-
-        sess.run(opt, feed_dict={x_placeholder: batch_x, y_label: batch_y})
-
-        if iter % 10 == 0:
-            los = sess.run(loss, feed_dict={x_placeholder: batch_x, y_label: batch_y})
-            print("For iter ", iter)
-            print("Loss ", los)
-            print("__________________")
-        loss_list_2.append(los)
-        iter = iter + 1
-
-import matplotlib.pyplot as plt
-plt.style.use('ggplot')
-x_axis = np.arange(np.shape(loss_list)[0])
-plt.plot(x_axis, loss_list)
-plt.plot(x_axis, loss_list_2)
+for i in range(10):
+    y_loss_data = loss_sequences[i][0]
+    labels = str(loss_sequences[i][1:6])
+    x_axis = np.arange(np.shape(y_loss_data)[0])
+    plot = plt.plot(x_axis, y_loss_data, label=labels)
+plt.legend()
 plt.show()
