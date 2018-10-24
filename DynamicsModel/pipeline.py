@@ -6,10 +6,6 @@ from sklearn import preprocessing
 from sklearn import pipeline
 import itertools
 
-data = pd.read_csv('/Users/stefruinard/Documents/ML6/DataECC/exp3_010.csv')
-
-x_train = data.loc[1000000:2020000, :]
-x_test = data.loc[2020000:2030000, :]
 
 
 class Preprocessing():
@@ -19,7 +15,7 @@ class Preprocessing():
         self.skip_n_frames = np.max((1, skip_n_frames))
         self.mean_window = np.max((1, mean_window))
         self.lag_period = lag_period
-        self.batch_size = batch_size * self.skip_n_frames * self.mean_window + np.max((0, lag_period)) * self.skip_n_frames * self.mean_window
+        self.batch_size = batch_size * self.skip_n_frames * self.mean_window + np.max((0, self.lag_period)) * self.skip_n_frames * self.mean_window
         self.default_columns = ['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'encoder_rpm', 'temperature_board']
         self.keep_all = keep_all
         self.use_default = use_default
@@ -27,9 +23,10 @@ class Preprocessing():
         self.standardize = standardize
         if self.remove_col_flag:
             self.X_train = self._remove_control_columns(self.X_train)
-
+            self.X_test = self._remove_control_columns(self.X_test)
         if self.standardize:
             self.X_train = self._standardize(self.X_train)
+            self.X_test = self._standardize(self.X_test, validation_flag=True)
 
     def _remove_control_columns(self, data):
         # USES PANDAS
@@ -41,15 +38,17 @@ class Preprocessing():
             self.all_columns = data.columns
         return data
 
-    def _standardize(self, data):
+    def _standardize(self, data, validation_flag=False):
         # USES PANDAS
         if self.use_default == False:
             self.default_columns = list(
                 input('which columns do you want to standardize?, type "default" for using the default columns',
                       'choose between:', str(data.columns)))
-
-        scaler = preprocessing.StandardScaler().fit(self.X_train.loc[:, self.default_columns])
-        data.loc[:, self.default_columns] = scaler.transform(data.loc[:, self.default_columns])
+        if validation_flag == False:
+            self.scaler = preprocessing.StandardScaler().fit(self.X_train.loc[:, self.default_columns])
+            data.loc[:, self.default_columns] = self.scaler.transform(data.loc[:, self.default_columns])
+        if validation_flag == True:
+            data.loc[:, self.default_columns] = self.scaler.transform(data.loc[:, self.default_columns])
         return data
 
     def _history_test_data(self, ):
@@ -60,7 +59,7 @@ class Preprocessing():
         test_data = np.concatenate(history_before_test_set, test_data)
         return test_data
 
-    def _select_batch(self, data):
+    def _select_batch(self, data, validation_flag=False, temp_batch_size=None):
         # want a full time_series, so can't use the final indexes in data[-self.batch_size:]
         length_data_set = np.shape(data)[0]
         time_series_suitable_indexes = length_data_set - self.batch_size
@@ -68,6 +67,15 @@ class Preprocessing():
         x_batch = data[index:index + self.batch_size]
         # target value is next time step, account for skip_n_frames and mean_window
         y_batch = data[index + self.skip_n_frames * self.mean_window:index + self.batch_size + self.skip_n_frames * self.mean_window]
+        if validation_flag==True:
+            val_batch_size = temp_batch_size * self.skip_n_frames * self.mean_window + np.max((0, self.lag_period)) * self.skip_n_frames * self.mean_window
+            time_series_suitable_indexes = length_data_set - val_batch_size
+            index = np.random.randint(time_series_suitable_indexes)
+
+            x_batch = data[index:index + val_batch_size]
+            # target value is next time step, account for skip_n_frames and mean_window
+            y_batch = data[index + self.skip_n_frames * self.mean_window:index + val_batch_size + self.skip_n_frames * self.mean_window]
+
         return x_batch, y_batch
 
     def _skip_frames(self, data):
@@ -89,12 +97,16 @@ class Preprocessing():
         concatenated_data = pd.concat((rolling_mean_data, flattened_actions_data), axis=1)
         return concatenated_data
 
-    def _rolling_mean(self, batch):
+    def _rolling_mean(self, batch, y_flag=False):
         # USES PANDAS
-        flattened_actions = self._create_flattened_actions(batch)
-        batch = batch.loc[:, self.default_columns].groupby(np.arange(len(batch.index)) // self.mean_window,
-                                                           axis=0).mean()
-        batch = self._concatenate(batch, flattened_actions)
+        if y_flag==False:
+            flattened_actions = self._create_flattened_actions(batch)
+            batch = batch.loc[:, self.default_columns].groupby(np.arange(len(batch.index)) // self.mean_window,
+                                                               axis=0).mean()
+            batch = self._concatenate(batch, flattened_actions)
+        if y_flag==True:
+            batch = batch.loc[:, self.default_columns].groupby(np.arange(len(batch.index)) // self.mean_window,
+                                                               axis=0).mean()
         return batch
 
     def _create_lag(self, batch):
@@ -112,15 +124,20 @@ class Preprocessing():
         lagged_data = lagged_data.set_index(index_values)
         return lagged_data
 
-    def _preprocess(self, skip_frames=True, mean_window=True):
+    def _preprocess(self, skip_frames=True, mean_window=True, validation_flag=False, temp_batch_size=None, decorrelate=True):
         x_batch, y_batch = self._select_batch(self.X_train)
+        if validation_flag:
+            x_batch, y_batch = self._select_batch(self.X_test, validation_flag=validation_flag, temp_batch_size=temp_batch_size)
+
         if skip_frames == True:
             x_batch = self._skip_frames(data=x_batch)
             y_batch = self._skip_frames(data=y_batch)
         if mean_window == True:
             x_batch = self._rolling_mean(x_batch)
-            y_batch = self._rolling_mean(y_batch)
+            y_batch = self._rolling_mean(y_batch, y_flag=True)
         x_batch = self._create_lag(x_batch)
         y_batch = self._create_lag(y_batch)
+        if decorrelate:
+            y_batch.loc[:, self.default_columns] = y_batch.loc[:, self.default_columns] - x_batch.loc[:,self.default_columns]
         return x_batch, y_batch.loc[:, self.default_columns]
 
