@@ -14,10 +14,10 @@ from pipeline import Preprocessing
 import matplotlib.pyplot as plt
 from deep_networks import Networks
 
-all_files = ['/Users/stefruinard/Documents/ML6/DataECC/exp3_006.csv','/Users/stefruinard/Documents/ML6/DataECC/exp3_007.csv','/Users/stefruinard/Documents/ML6/DataECC/exp3_008.csv','/Users/stefruinard/Documents/ML6/DataECC/exp3_009.csv','/Users/stefruinard/Documents/ML6/DataECC/exp3_010.csv']
+all_files = ['/Users/stefruinard/Documents/ML6/DataECC/exp3_010.csv'] #'/Users/stefruinard/Documents/ML6/DataECC/exp3_006.csv','/Users/stefruinard/Documents/ML6/DataECC/exp3_007.csv','/Users/stefruinard/Documents/ML6/DataECC/exp3_008.csv','/Users/stefruinard/Documents/ML6/DataECC/exp3_009.csv',
 df = pd.concat((pd.read_csv(f) for f in all_files))
-x_train = df[:12000000]
-x_test = df[12000000:]
+x_train = df[:int(0.8*np.shape(df)[0])]
+x_test = df[int(0.8*np.shape(df)[0]):]
 print('------Data and Packages Loaded------')
 
 
@@ -35,7 +35,7 @@ lstm_units_list = [128,128,128,64,64,64,12,12,12,24,24,24,50,50,50,100,100,100,2
 type_list = ["LSTM"]*10 + ['dense']*10
 n_units_list = [[500,250,10], [100,100,100], [20,10,10], [50,25,10],[50,50,50], [60,40,20],[100,50,10], [150,100,50], [75,50,25], [30,20,10]]*2
 
-for i in range(1):
+for i in range(20):
 
     # initialize variables
     mean_window, skip_n_frames, lag_period, type, n_units, lstm_units = skip_n_frames_list[i], mean_window_list[i], lag_period_list[i], type_list[i], n_units_list[i], lstm_units_list[i]
@@ -49,7 +49,7 @@ for i in range(1):
         loss_list = []
         validation_list = []
         iter = 1
-        while iter < 500:
+        while iter < 5000:
 
             batch_x, batch_y = Preprocess_input._preprocess()
             if Network.type =='LSTM':
@@ -74,7 +74,7 @@ for i in range(1):
                 if i == 19:
                     input_as_prediction = np.sum(np.mean(np.square((validation_batch_x.iloc[:, :7] - validation_batch_y))))
                     base_line_validation.append(input_as_prediction)
-            if iter ==499:
+            if iter ==4999:
                 loss_sequences.append((loss_list,mean_window, skip_n_frames, lag_period, type, n_units, lstm_units))
                 validation_sequences.append(validation_list)
             iter = iter + 1

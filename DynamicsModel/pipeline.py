@@ -7,16 +7,20 @@ from sklearn import pipeline
 import itertools
 
 
-
 class Preprocessing():
-    def __init__(self, X_train, X_test, batch_size, skip_n_frames=1, mean_window=1, lag_period=0, keep_all=False, use_default=True, remove_col_flag=True, standardize=True):
+    def __init__(self, X_train, X_test, batch_size, skip_n_frames=1, mean_window=1, lag_period=0, keep_all=False,
+                 use_default=True, remove_col_flag=True, standardize=True):
         self.X_train = X_train
         self.X_test = X_test
         self.skip_n_frames = np.max((1, skip_n_frames))
         self.mean_window = np.max((1, mean_window))
         self.lag_period = lag_period
-        self.batch_size = batch_size * self.skip_n_frames * self.mean_window + np.max((0, self.lag_period)) * self.skip_n_frames * self.mean_window
-        self.default_columns = ['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'encoder_rpm', 'temperature_board']
+        self.batch_size = batch_size * self.skip_n_frames * self.mean_window + np.max(
+            (0, self.lag_period)) * self.skip_n_frames * self.mean_window
+        self.default_columns = ['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'encoder_rpm',
+                                'temperature_board']  # target_state_columns
+        self.input_state_columns = ['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'temperature_board']
+
         self.keep_all = keep_all
         self.use_default = use_default
         self.remove_col_flag = remove_col_flag
@@ -66,15 +70,18 @@ class Preprocessing():
         index = np.random.randint(time_series_suitable_indexes)
         x_batch = data[index:index + self.batch_size]
         # target value is next time step, account for skip_n_frames and mean_window
-        y_batch = data[index + self.skip_n_frames * self.mean_window:index + self.batch_size + self.skip_n_frames * self.mean_window]
-        if validation_flag==True:
-            val_batch_size = temp_batch_size * self.skip_n_frames * self.mean_window + np.max((0, self.lag_period)) * self.skip_n_frames * self.mean_window
+        y_batch = data[
+                  index + self.skip_n_frames * self.mean_window:index + self.batch_size + self.skip_n_frames * self.mean_window]
+        if validation_flag == True:
+            val_batch_size = temp_batch_size * self.skip_n_frames * self.mean_window + np.max(
+                (0, self.lag_period)) * self.skip_n_frames * self.mean_window
             time_series_suitable_indexes = length_data_set - val_batch_size
             index = np.random.randint(time_series_suitable_indexes)
 
             x_batch = data[index:index + val_batch_size]
             # target value is next time step, account for skip_n_frames and mean_window
-            y_batch = data[index + self.skip_n_frames * self.mean_window:index + val_batch_size + self.skip_n_frames * self.mean_window]
+            y_batch = data[
+                      index + self.skip_n_frames * self.mean_window:index + val_batch_size + self.skip_n_frames * self.mean_window]
 
         return x_batch, y_batch
 
@@ -99,12 +106,12 @@ class Preprocessing():
 
     def _rolling_mean(self, batch, y_flag=False):
         # USES PANDAS
-        if y_flag==False:
+        if y_flag == False:
             flattened_actions = self._create_flattened_actions(batch)
             batch = batch.loc[:, self.default_columns].groupby(np.arange(len(batch.index)) // self.mean_window,
                                                                axis=0).mean()
             batch = self._concatenate(batch, flattened_actions)
-        if y_flag==True:
+        if y_flag == True:
             batch = batch.loc[:, self.default_columns].groupby(np.arange(len(batch.index)) // self.mean_window,
                                                                axis=0).mean()
         return batch
@@ -124,10 +131,12 @@ class Preprocessing():
         lagged_data = lagged_data.set_index(index_values)
         return lagged_data
 
-    def _preprocess(self, skip_frames=True, mean_window=True, validation_flag=False, temp_batch_size=None, decorrelate=True):
+    def _preprocess(self, skip_frames=True, mean_window=True, validation_flag=False, temp_batch_size=None,
+                    decorrelate=True):
         x_batch, y_batch = self._select_batch(self.X_train)
         if validation_flag:
-            x_batch, y_batch = self._select_batch(self.X_test, validation_flag=validation_flag, temp_batch_size=temp_batch_size)
+            x_batch, y_batch = self._select_batch(self.X_test, validation_flag=validation_flag,
+                                                  temp_batch_size=temp_batch_size)
 
         if skip_frames == True:
             x_batch = self._skip_frames(data=x_batch)
@@ -138,6 +147,9 @@ class Preprocessing():
         x_batch = self._create_lag(x_batch)
         y_batch = self._create_lag(y_batch)
         if decorrelate:
-            y_batch.loc[:, self.default_columns] = y_batch.loc[:, self.default_columns] - x_batch.loc[:,self.default_columns]
+            y_batch.loc[:, self.input_state_columns] = y_batch.loc[:, self.input_state_columns] - x_batch.loc[:,
+                                                                                                  self.input_state_columns]
         return x_batch, y_batch.loc[:, self.default_columns]
+
+
 
