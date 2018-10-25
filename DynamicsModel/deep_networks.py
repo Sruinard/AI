@@ -1,17 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib import rnn
-import os
-import sys
-import numpy as np
-import os
-import pandas as pd
-from sklearn import preprocessing
-from sklearn import pipeline
-import itertools
-import matplotlib.pyplot as plt
-sys.path.append('/Users/stefruinard/Desktop/AI/DynamicsModel/')
-from pipeline import Preprocessing
-import matplotlib.pyplot as plt
+
 
 class Networks():
     def __init__(self, type, n_special_layers, n_dense_layers, n_units, lstm_n_units, Preprocess_input, learning_rate,n_classes=7):
@@ -21,7 +10,7 @@ class Networks():
         self.n_units = n_units #provide in list
         self.lstm_n_units = lstm_n_units
         self.preprocess_input = Preprocess_input
-        self.n_input = self.preprocess_input.mean_window * 3 + 7
+        self.n_input = self.preprocess_input.mean_window * 3 + 7    #3 = number of control variables, 7=number of state variables
         self.n_time_steps = (self.preprocess_input.lag_period+1)
         self.n_classes = n_classes
         self.learning_rate = learning_rate

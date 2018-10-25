@@ -36,7 +36,6 @@ type_list = ["LSTM"]*10 + ['dense']*10
 n_units_list = [[500,250,10], [100,100,100], [20,10,10], [50,25,10],[50,50,50], [60,40,20],[100,50,10], [150,100,50], [75,50,25], [30,20,10]]*2
 
 for i in range(20):
-
     # initialize variables
     mean_window, skip_n_frames, lag_period, type, n_units, lstm_units = skip_n_frames_list[i], mean_window_list[i], lag_period_list[i], type_list[i], n_units_list[i], lstm_units_list[i]
     tf.reset_default_graph()
@@ -45,6 +44,7 @@ for i in range(20):
     init = tf.global_variables_initializer()
     np.random.seed(5)
     with tf.Session() as sess:
+        writer = tf.summary.FileWriter('/Users/stefruinard/Desktop/AI/A3C/graphs/', sess.graph)
         sess.run(init)
         loss_list = []
         validation_list = []
@@ -64,7 +64,7 @@ for i in range(20):
                 print("__________________")
                 loss_list.append(los)
 
-            if iter%100 == 0:
+            if iter % 100 == 0:
 
                 validation_batch_x, validation_batch_y = Preprocess_input._preprocess(validation_flag=True, temp_batch_size=temp_batch_size)
                 if Network.type == 'LSTM':
@@ -78,50 +78,4 @@ for i in range(20):
                 loss_sequences.append((loss_list,mean_window, skip_n_frames, lag_period, type, n_units, lstm_units))
                 validation_sequences.append(validation_list)
             iter = iter + 1
-
-
-
-
-
-
-
-plt.style.use('ggplot')
-
-val_mean_list_numbers = []
-train_mean_list_numbers = []
-val_means = []
-train_means = []
-for i in range(20):
-    val_mean_list_numbers.append(validation_sequences[i][-100:])
-    train_mean_list_numbers.append(loss_sequences[i][0][-100:])
-
-for i in range(20):
-    val_means.append(np.mean(val_mean_list_numbers[i]))
-    train_means.append(np.mean(train_mean_list_numbers[i]))
-
-
-
-
-i = np.argmin(val_means)
-y_loss_data = loss_sequences[i][0]
-labels = str(loss_sequences[i][1:7])
-x_axis = np.arange(np.shape(y_loss_data)[0])
-plot = plt.plot(x_axis, y_loss_data, label=('test: '+ labels))
-y_loss_val = validation_sequences[i]
-plot = plt.plot(x_axis, y_loss_val, label=('validation: '+labels))
-plt.legend()
-plt.show()
-
-for i in range(20):
-    y_loss_data = loss_sequences[i][0]
-    labels = str(loss_sequences[i][1:7])
-    x_axis = np.arange(np.shape(y_loss_data)[0])
-    plot = plt.plot(x_axis, y_loss_data)
-    y_loss_val = validation_sequences[i]
-    plot = plt.plot(x_axis, y_loss_val)
-    plt.legend()
-    plt.show()
-
-
-
 

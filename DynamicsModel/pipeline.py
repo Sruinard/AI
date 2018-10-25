@@ -1,9 +1,6 @@
-import tensorflow as tf
 import numpy as np
-import os
 import pandas as pd
 from sklearn import preprocessing
-from sklearn import pipeline
 import itertools
 
 
@@ -19,7 +16,6 @@ class Preprocessing():
             (0, self.lag_period)) * self.skip_n_frames * self.mean_window
         self.default_columns = ['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'encoder_rpm',
                                 'temperature_board']  # target_state_columns
-        self.input_state_columns = ['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'temperature_board']
 
         self.keep_all = keep_all
         self.use_default = use_default
@@ -147,8 +143,8 @@ class Preprocessing():
         x_batch = self._create_lag(x_batch)
         y_batch = self._create_lag(y_batch)
         if decorrelate:
-            y_batch.loc[:, self.input_state_columns] = y_batch.loc[:, self.input_state_columns] - x_batch.loc[:,
-                                                                                                  self.input_state_columns]
+            y_batch.loc[:, self.default_columns] = y_batch.loc[:, self.default_columns] - x_batch.loc[:,
+                                                                                          self.default_columns]
         return x_batch, y_batch.loc[:, self.default_columns]
 
 
