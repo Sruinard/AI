@@ -33,9 +33,9 @@ class DriftBatch():
         self.network = network.network
         self.length_one_state = self.mean_window * self.n_action_cols + self.n_state_cols
         if self.network_type=='LSTM':
-            self.input_state = np.reshape(self.batch_x.iloc[0, :], newshape=(-1, self.lag + 1, self.length_one_state))
+            self.input_state = np.reshape(np.array(self.batch_x.iloc[0, :]), newshape=(-1, self.lag + 1, self.length_one_state))
         else:
-            self.input_state = np.reshape(self.batch_x.iloc[0, :], newshape=(1, -1))
+            self.input_state = np.reshape(np.array(self.batch_x.iloc[0, :]), newshape=(1, -1))
 
     def create_batch(self, sess, n_drift):
         self.prediction = None
