@@ -79,7 +79,7 @@ class Networks():
         loss_per_feature = tf.reduce_mean(tf.squared_difference(prediction, target_placeholder), axis=0,
                                           name='loss_per_feature')
         loss_per_batch = tf.losses.mean_squared_error(labels=target_placeholder, predictions=prediction)
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(max_to_keep=10000000)
         return AttrDict(locals())
 
     def __optimize__(self, optimizer=tf.train.AdamOptimizer()):
