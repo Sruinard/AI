@@ -61,13 +61,13 @@ class Networks():
             for i in range(self.n_dense_layers):
                 if (i == 0) & (lstm_flag == False):
                     layer = tf.layers.dense(inputs=placeholder_x, units=self.units_layer_n_dense[i],
-                                            name='layer' + str(i), activation=tf.nn.relu)
+                                            name='layer' + str(i), activation=tf.nn.elu)
                 elif (i == 0) & (lstm_flag == True):
                     layer = tf.layers.dense(inputs=layer[-1], units=self.units_layer_n_dense[i], name='layer' + str(i),
-                                            activation=tf.nn.relu)
+                                            activation=tf.nn.elu)
                 else:
                     layer = tf.layers.dense(inputs=layer, units=self.units_layer_n_dense[i], name='layer' + str(i),
-                                            activation=tf.nn.relu)
+                                            activation=tf.nn.elu)
 
         if (lstm_flag == True) & (self.n_dense_layers > 0):
             prediction = tf.layers.dense(inputs=layer, units=self.n_output_features, name='prediction')

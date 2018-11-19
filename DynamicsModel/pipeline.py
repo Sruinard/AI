@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 class DataSelection():
     def __init__(self, df, split_percentage,
@@ -32,6 +32,27 @@ class Preprocessing():
     def _fitter(self, data_for_fitting, cols_to_standardize):
         self.cols_to_standardize = cols_to_standardize
         fitter = StandardScaler().fit(self.data_for_fitting.loc[:, self.cols_to_standardize])
+        return fitter
+
+    def _transform(self, data_to_transform):
+        data_to_transform.loc[:, self.cols_to_standardize] = self.fitter.transform(
+            data_to_transform.loc[:, self.cols_to_standardize])
+        return data_to_transform
+
+class PreprocessingNormalize():
+    # class for:
+    # - train and val
+    # - standardization
+    def __init__(self, data_for_fitting,
+                 cols_to_standardize=['V_source', 'I_U', 'I_V', 'I_W', 'sensor_torque', 'encoder_rpm',
+                                      'temperature_board']):
+        self.data_for_fitting = data_for_fitting
+        self.cols_to_standardize = cols_to_standardize
+        self.fitter = self._fitter(data_for_fitting, self.cols_to_standardize)
+
+    def _fitter(self, data_for_fitting, cols_to_standardize):
+        self.cols_to_standardize = cols_to_standardize
+        fitter = MinMaxScaler().fit(self.data_for_fitting.loc[:, self.cols_to_standardize])
         return fitter
 
     def _transform(self, data_to_transform):
